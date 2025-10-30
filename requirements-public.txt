@@ -6,6 +6,7 @@ slack-sdk>=3.21.0
 
 # Web framework for webhooks
 fastapi>=0.104.0
+starlette>=0.27.0
 uvicorn[standard]>=0.24.0
 
 # Async support
