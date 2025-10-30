@@ -16,9 +16,15 @@ class Settings(BaseSettings):
     # ================================
     # SLACK CONFIGURATION
     # ================================
-    slack_bot_token: str = Field(..., env="SLACK_BOT_TOKEN")
-    slack_app_token: str = Field(..., env="SLACK_APP_TOKEN") 
+    # Socket Mode (optional - for internal deployment)
+    slack_bot_token: Optional[str] = Field(None, env="SLACK_BOT_TOKEN")
+    slack_app_token: Optional[str] = Field(None, env="SLACK_APP_TOKEN")
+    
+    # OAuth (for public distribution)
+    slack_client_id: Optional[str] = Field(None, env="SLACK_CLIENT_ID")
+    slack_client_secret: Optional[str] = Field(None, env="SLACK_CLIENT_SECRET")
     slack_signing_secret: str = Field(..., env="SLACK_SIGNING_SECRET")
+    slack_app_id: Optional[str] = Field(None, env="SLACK_APP_ID")
     slack_admin_channel: Optional[str] = Field(None, env="SLACK_ADMIN_CHANNEL")
     
     # ================================
