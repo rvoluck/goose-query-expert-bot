@@ -1,0 +1,51 @@
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Emoji Style Friendly Icon -->
+  
+  <defs>
+    <linearGradient id="emojiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4299E1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3182CE;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Main circle -->
+  <circle cx="256" cy="256" r="240" fill="url(#emojiGradient)"/>
+  
+  <!-- Left eye -->
+  <circle cx="200" cy="220" r="30" fill="white"/>
+  <circle cx="200" cy="220" r="15" fill="#1A202C"/>
+  <circle cx="205" cy="215" r="6" fill="white"/>
+  
+  <!-- Right eye -->
+  <circle cx="312" cy="220" r="30" fill="white"/>
+  <circle cx="312" cy="220" r="15" fill="#1A202C"/>
+  <circle cx="317" cy="215" r="6" fill="white"/>
+  
+  <!-- Beak -->
+  <polygon points="235,280 277,280 256,310" fill="#FFA500"/>
+  
+  <!-- Happy expression - small curve -->
+  <path d="M 200 320 Q 256 340 312 320" stroke="#1A202C" stroke-width="4" fill="none" stroke-linecap="round"/>
+  
+  <!-- Sparkles for AI/Smart -->
+  <g opacity="0.8">
+    <!-- Top left sparkle -->
+    <polygon points="100,100 105,115 120,120 105,125 100,140 95,125 80,120 95,115" fill="white"/>
+    
+    <!-- Top right sparkle -->
+    <polygon points="412,100 417,115 432,120 417,125 412,140 407,125 392,120 407,115" fill="white"/>
+    
+    <!-- Bottom left sparkle -->
+    <polygon points="100,412 105,427 120,432 105,437 100,452 95,437 80,432 95,427" fill="white"/>
+    
+    <!-- Bottom right sparkle -->
+    <polygon points="412,412 417,427 432,432 417,437 412,452 407,437 392,432 407,427" fill="white"/>
+  </g>
+  
+  <!-- Small data icon -->
+  <g transform="translate(340, 340)" opacity="0.9">
+    <rect x="0" y="15" width="12" height="25" fill="white" rx="2"/>
+    <rect x="17" y="8" width="12" height="32" fill="white" rx="2"/>
+    <rect x="34" y="12" width="12" height="28" fill="white" rx="2"/>
+  </g>
+</svg>

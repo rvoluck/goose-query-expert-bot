@@ -1,0 +1,51 @@
+# Slackbot for Goose Query Expert Integration
+# Core dependencies
+
+# Slack SDK
+slack-sdk>=3.21.0
+slack-bolt>=1.18.0
+
+# Async support
+aiohttp>=3.8.0
+asyncio-mqtt>=0.11.0
+
+# Database and caching
+asyncpg>=0.28.0
+redis>=4.5.0
+aioredis>=2.0.0
+
+# Configuration and environment
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Logging and monitoring
+structlog>=23.0.0
+prometheus-client>=0.17.0
+
+# Security and authentication
+cryptography>=41.0.0
+PyJWT>=2.8.0
+passlib>=1.7.4
+
+# HTTP client for API calls
+httpx>=0.24.0
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Development and testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-mock>=3.11.0
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.5.0
+
+# Production server
+uvicorn>=0.23.0
+gunicorn>=21.0.0
+
+# Docker health checks
+psutil>=5.9.0

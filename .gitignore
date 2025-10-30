@@ -1,0 +1,410 @@
+# Goose Query Expert Slackbot - Git Ignore File
+
+# ============================================================================
+# CRITICAL: SECRETS AND CREDENTIALS
+# ============================================================================
+# Never commit these files - they contain sensitive information!
+
+.env
+.env.local
+.env.production
+.env.staging
+*.env
+
+# Backup environment files (may contain secrets)
+.env.backup
+.env.*.backup
+
+# ============================================================================
+# PYTHON
+# ============================================================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+test-results/
+test-reports/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# ============================================================================
+# DATABASES
+# ============================================================================
+
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
+# PostgreSQL dumps
+*.dump
+*.sql.gz
+
+# Database backups
+backups/
+*.backup
+
+# ============================================================================
+# REDIS
+# ============================================================================
+
+# Redis dump files
+dump.rdb
+appendonly.aof
+
+# ============================================================================
+# LOGS
+# ============================================================================
+
+# Application logs
+*.log
+logs/
+*.log.*
+*.log.gz
+
+# System logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ============================================================================
+# OPERATING SYSTEM
+# ============================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ============================================================================
+# IDEs AND EDITORS
+# ============================================================================
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+Session.vim
+Sessionx.vim
+.netrwhist
+*~
+tags
+[._]*.un~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ============================================================================
+# DOCKER
+# ============================================================================
+
+# Docker volumes
+docker-volumes/
+.docker/
+
+# ============================================================================
+# KUBERNETES
+# ============================================================================
+
+# Kubernetes secrets (should use external secret management)
+k8s/secrets/
+k8s/*-secret.yaml
+k8s/*.secret.yaml
+
+# ============================================================================
+# MONITORING
+# ============================================================================
+
+# Prometheus data
+prometheus-data/
+alertmanager-data/
+
+# Grafana data
+grafana-data/
+
+# ============================================================================
+# TEMPORARY FILES
+# ============================================================================
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.~*
+
+# Cache directories
+.cache/
+cache/
+
+# ============================================================================
+# PROJECT SPECIFIC
+# ============================================================================
+
+# Mock data (if it contains sensitive info)
+mock_data/sensitive/
+
+# User-specific scripts
+scripts/local/
+scripts/personal/
+
+# Local configuration overrides
+config.local.py
+config.override.py
+
+# Test data with PII
+tests/data/pii/
+tests/data/sensitive/
+
+# Generated files
+generated/
+output/
+
+# ============================================================================
+# SECURITY
+# ============================================================================
+
+# Private keys
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+*.jks
+
+# SSH keys
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+
+# GPG keys
+*.gpg
+*.asc
+
+# Secrets management
+secrets/
+.secrets/
+
+# ============================================================================
+# CI/CD
+# ============================================================================
+
+# GitHub Actions artifacts
+.github/workflows/*.local.yml
+
+# ============================================================================
+# DOCUMENTATION (OPTIONAL)
+# ============================================================================
+
+# Uncomment if you want to exclude generated documentation
+# docs/build/
+# docs/_build/
+
+# ============================================================================
+# KEEP THESE FILES
+# ============================================================================
+
+# These are templates and should be committed:
+# !env.example
+# !env.public.example
+# !.env.example
+# !config.example.py
+
+# ============================================================================
+# NOTES
+# ============================================================================
+
+# This .gitignore is comprehensive and protects against accidentally
+# committing sensitive information. Key principles:
+#
+# 1. NEVER commit .env files (they contain secrets)
+# 2. NEVER commit database files
+# 3. NEVER commit private keys or certificates
+# 4. NEVER commit logs (may contain sensitive data)
+# 5. ALWAYS commit .env.example files (templates only)
+#
+# If you accidentally commit a secret:
+# 1. Immediately rotate the secret
+# 2. Use git-filter-branch or BFG Repo-Cleaner to remove from history
+# 3. Force push to remote (if safe to do so)
+# 4. Notify your team

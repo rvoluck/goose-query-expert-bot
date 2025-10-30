@@ -1,0 +1,132 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint:
+    name: Lint Code
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      
+      - name: Install linting tools
+        run: |
+          pip install flake8 black isort mypy
+      
+      - name: Run flake8
+        run: flake8 . --count --show-source --statistics
+      
+      - name: Check black formatting
+        run: black --check .
+      
+      - name: Check import sorting
+        run: isort --check-only .
+      
+      - name: Run mypy type checking
+        run: mypy . --ignore-missing-imports
+
+  test:
+    name: Test Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+    
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-public.txt
+          pip install -r tests/requirements.txt
+      
+      - name: Run unit tests
+        run: pytest tests/unit/ -v --cov=. --cov-report=xml --cov-report=term
+        env:
+          ENVIRONMENT: test
+          GOOSE_MODE: mock
+      
+      - name: Run integration tests
+        run: pytest tests/integration/ -v
+        env:
+          ENVIRONMENT: test
+          GOOSE_MODE: mock
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          REDIS_URL: redis://localhost:6379
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      
+      - name: Install security tools
+        run: |
+          pip install bandit safety
+      
+      - name: Run bandit security scan
+        run: bandit -r . -f json -o bandit-report.json
+      
+      - name: Check dependencies for vulnerabilities
+        run: safety check --json
+      
+      - name: Upload security reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-reports
+          path: bandit-report.json

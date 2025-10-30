@@ -1,0 +1,41 @@
+# Testing dependencies for Goose Slackbot
+
+# Core testing frameworks
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+pytest-mock==3.12.0
+pytest-timeout==2.2.0
+pytest-xdist==3.5.0  # Parallel test execution
+
+# Load testing
+locust==2.20.0
+
+# Mocking and fixtures
+faker==20.1.0
+factory-boy==3.3.0
+responses==0.24.1
+aioresponses==0.7.6
+
+# Code quality
+black==23.12.1
+flake8==7.0.0
+pylint==3.0.3
+mypy==1.8.0
+isort==5.13.2
+
+# Coverage and reporting
+coverage[toml]==7.4.0
+pytest-html==4.1.1
+
+# Performance testing
+memory-profiler==0.61.0
+py-spy==0.3.14
+
+# Database testing
+pytest-postgresql==5.0.0
+testing.postgresql==1.3.0
+
+# Utilities
+tabulate==0.9.0
+colorama==0.4.6

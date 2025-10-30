@@ -1,0 +1,197 @@
+# ================================
+# Multi-stage Optimized Dockerfile for Goose Slackbot
+# Optimized for size, security, and performance
+# ================================
+
+# ================================
+# Stage 1: Base Python Image
+# ================================
+FROM python:3.11-slim as python-base
+
+# Python configuration
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONFAULTHANDLER=1 \
+    PYTHONHASHSEED=random \
+    DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    --no-install-recommends \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# ================================
+# Stage 2: Dependencies Builder
+# ================================
+FROM python-base as builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy and install requirements
+WORKDIR /build
+COPY requirements.txt requirements-db.txt ./
+
+# Install Python dependencies
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements.txt -r requirements-db.txt && \
+    pip install --no-cache-dir gunicorn uvicorn[standard]
+
+# ================================
+# Stage 3: Development Image
+# ================================
+FROM python-base as development
+
+# Install development tools
+RUN apt-get update && apt-get install -y \
+    --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    git \
+    vim \
+    htop \
+    procps \
+    postgresql-client \
+    redis-tools \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install additional development tools
+RUN pip install --no-cache-dir \
+    pytest-cov \
+    pytest-xdist \
+    pytest-asyncio \
+    ipython \
+    black \
+    flake8 \
+    mypy
+
+# Create app user
+RUN groupadd -r appuser && \
+    useradd -r -g appuser -u 1000 appuser && \
+    mkdir -p /app /app/logs /app/data && \
+    chown -R appuser:appuser /app
+
+WORKDIR /app
+
+# Copy application code
+COPY --chown=appuser:appuser . .
+
+# Switch to non-root user
+USER appuser
+
+# Expose ports
+EXPOSE 3000 9090
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD python health_check.py --check liveness || exit 1
+
+# Development command with auto-reload
+CMD ["python", "slack_bot.py"]
+
+# ================================
+# Stage 4: Production Image
+# ================================
+FROM python-base as production
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y \
+    --no-install-recommends \
+    libpq5 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Create app user with specific UID/GID
+RUN groupadd -r appuser && \
+    useradd -r -g appuser -u 1000 appuser && \
+    mkdir -p /app /app/logs /app/data && \
+    chown -R appuser:appuser /app
+
+WORKDIR /app
+
+# Copy application code
+COPY --chown=appuser:appuser *.py ./
+COPY --chown=appuser:appuser *.sql ./
+COPY --chown=appuser:appuser *.md ./
+COPY --chown=appuser:appuser gunicorn.conf.py ./
+
+# Set production environment
+ENV ENVIRONMENT=production \
+    PYTHONPATH=/app
+
+# Switch to non-root user
+USER appuser
+
+# Expose ports
+EXPOSE 3000 9090
+
+# Health check with proper endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python health_check.py --check liveness --exit-code || exit 1
+
+# Production command with Gunicorn
+CMD ["gunicorn", "--config", "gunicorn.conf.py", "slack_bot:app"]
+
+# ================================
+# Stage 5: Testing Image
+# ================================
+FROM development as testing
+
+# Install test dependencies
+RUN pip install --no-cache-dir \
+    pytest-cov \
+    pytest-xdist \
+    pytest-asyncio \
+    pytest-timeout \
+    pytest-mock \
+    coverage[toml]
+
+# Copy test files
+COPY --chown=appuser:appuser tests/ ./tests/
+COPY --chown=appuser:appuser pytest.ini ./
+COPY --chown=appuser:appuser .coveragerc ./
+
+# Run tests by default
+CMD ["pytest", "-v", "--cov=.", "--cov-report=html", "--cov-report=term"]
+
+# ================================
+# Stage 6: Security Scanning Image
+# ================================
+FROM production as security-scan
+
+USER root
+
+# Install security scanning tools
+RUN pip install --no-cache-dir \
+    safety \
+    bandit \
+    pip-audit
+
+# Run security scans
+RUN safety check --json || true && \
+    bandit -r /app -f json -o /app/bandit-report.json || true && \
+    pip-audit --format json --output /app/pip-audit-report.json || true
+
+USER appuser
+
+CMD ["cat", "/app/bandit-report.json"]

@@ -1,0 +1,36 @@
+# Requirements for Public Distribution (Events API + OAuth)
+
+# Core Slack SDK
+slack-bolt>=1.18.0
+slack-sdk>=3.21.0
+
+# Web framework for webhooks
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+
+# Async support
+aiohttp>=3.8.0
+httpx>=0.24.0
+
+# Database
+asyncpg>=0.28.0
+psycopg2-binary>=2.9.0
+
+# Redis
+redis>=4.5.0
+aioredis>=2.0.0
+
+# Configuration
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Security
+cryptography>=41.0.0
+PyJWT>=2.8.0
+
+# Logging
+structlog>=23.0.0
+
+# Production server
+gunicorn>=21.0.0

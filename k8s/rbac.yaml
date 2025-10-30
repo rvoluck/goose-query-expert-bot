@@ -1,0 +1,181 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: goose-slackbot-sa
+  namespace: goose-slackbot
+  labels:
+    app: goose-slackbot
+automountServiceAccountToken: true
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: goose-slackbot-role
+  namespace: goose-slackbot
+  labels:
+    app: goose-slackbot
+rules:
+# Allow reading pods for health checks and monitoring
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+
+# Allow reading services for service discovery
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "list", "watch"]
+
+# Allow reading configmaps for configuration updates
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+
+# Allow reading secrets for credential rotation
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
+
+# Allow creating events for logging
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create"]
+
+# Allow updating endpoints for service mesh integration
+- apiGroups: [""]
+  resources: ["endpoints"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: goose-slackbot-rolebinding
+  namespace: goose-slackbot
+  labels:
+    app: goose-slackbot
+subjects:
+- kind: ServiceAccount
+  name: goose-slackbot-sa
+  namespace: goose-slackbot
+roleRef:
+  kind: Role
+  name: goose-slackbot-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Optional: ClusterRole for cross-namespace monitoring
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: goose-slackbot-cluster-role
+  labels:
+    app: goose-slackbot
+rules:
+# Allow reading nodes for cluster health monitoring
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+
+# Allow reading namespaces for multi-tenant support
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list", "watch"]
+
+# Allow reading metrics for monitoring
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["nodes", "pods"]
+  verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: goose-slackbot-cluster-rolebinding
+  labels:
+    app: goose-slackbot
+subjects:
+- kind: ServiceAccount
+  name: goose-slackbot-sa
+  namespace: goose-slackbot
+roleRef:
+  kind: ClusterRole
+  name: goose-slackbot-cluster-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Network Policy for security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: goose-slackbot-network-policy
+  namespace: goose-slackbot
+  labels:
+    app: goose-slackbot
+spec:
+  podSelector:
+    matchLabels:
+      app: goose-slackbot
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from ingress controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 3000
+  # Allow ingress from monitoring namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090
+  # Allow internal communication within namespace
+  - from:
+    - podSelector:
+        matchLabels:
+          app: goose-slackbot
+    ports:
+    - protocol: TCP
+      port: 3000
+    - protocol: TCP
+      port: 5432
+    - protocol: TCP
+      port: 6379
+  egress:
+  # Allow egress to DNS
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow egress to external APIs (Slack, Snowflake, etc.)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+  # Allow internal database connections
+  - to:
+    - podSelector:
+        matchLabels:
+          app: goose-slackbot
+          component: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  # Allow internal Redis connections
+  - to:
+    - podSelector:
+        matchLabels:
+          app: goose-slackbot
+          component: redis
+    ports:
+    - protocol: TCP
+      port: 6379

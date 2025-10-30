@@ -1,0 +1,83 @@
+# Prometheus configuration for Goose Slackbot monitoring
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'goose-slackbot'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Load rules
+rule_files:
+  - 'alerts.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          component: 'prometheus'
+
+  # Goose Slackbot Application
+  - job_name: 'goose-slackbot-app'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['app:9090']
+        labels:
+          component: 'app'
+          service: 'goose-slackbot'
+    
+    # Kubernetes service discovery (if using K8s)
+    # kubernetes_sd_configs:
+    #   - role: pod
+    #     namespaces:
+    #       names:
+    #         - goose-slackbot
+    # relabel_configs:
+    #   - source_labels: [__meta_kubernetes_pod_label_app]
+    #     action: keep
+    #     regex: goose-slackbot
+    #   - source_labels: [__meta_kubernetes_pod_label_component]
+    #     action: keep
+    #     regex: app
+    #   - source_labels: [__meta_kubernetes_pod_name]
+    #     target_label: pod
+    #   - source_labels: [__meta_kubernetes_namespace]
+    #     target_label: namespace
+
+  # PostgreSQL Exporter (if installed)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          component: 'postgres'
+
+  # Redis Exporter (if installed)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          component: 'redis'
+
+  # Node Exporter (for system metrics)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          component: 'node'
+
+  # cAdvisor (for container metrics)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          component: 'cadvisor'

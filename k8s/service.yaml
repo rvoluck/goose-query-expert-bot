@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: goose-slackbot-service
+  namespace: goose-slackbot
+  labels:
+    app: goose-slackbot
+    component: app
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3000
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: metrics
+  selector:
+    app: goose-slackbot
+    component: app
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: goose-slackbot
+  labels:
+    app: goose-slackbot
+    component: postgres
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+    name: postgres
+  selector:
+    app: goose-slackbot
+    component: postgres
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: goose-slackbot
+  labels:
+    app: goose-slackbot
+    component: redis
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+    protocol: TCP
+    name: redis
+  selector:
+    app: goose-slackbot
+    component: redis
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: goose-slackbot-headless
+  namespace: goose-slackbot
+  labels:
+    app: goose-slackbot
+    component: app
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - port: 3000
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  selector:
+    app: goose-slackbot
+    component: app

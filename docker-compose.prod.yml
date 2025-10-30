@@ -1,0 +1,462 @@
+# ================================
+# Production Docker Compose Configuration
+# For production-like deployments with full monitoring stack
+# ================================
+version: '3.8'
+
+services:
+  # ================================
+  # Main Application (Production)
+  # ================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.optimized
+      target: production
+      args:
+        - BUILD_DATE=${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}
+        - VCS_REF=${VCS_REF:-$(git rev-parse --short HEAD)}
+        - VERSION=${VERSION:-1.0.0}
+    image: goose-slackbot:${VERSION:-latest}
+    container_name: goose-slackbot-app-prod
+    ports:
+      - "${APP_PORT:-3000}:3000"
+      - "${METRICS_PORT:-9090}:9090"
+    environment:
+      # Application
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - HOST=0.0.0.0
+      - PORT=3000
+      - WORKERS=${WORKERS:-4}
+      
+      # Database
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-goose_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-goose_slackbot}
+      - DATABASE_POOL_SIZE=${DATABASE_POOL_SIZE:-20}
+      - DATABASE_MAX_OVERFLOW=${DATABASE_MAX_OVERFLOW:-40}
+      
+      # Redis
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - REDIS_SESSION_TTL=3600
+      - REDIS_CACHE_TTL=1800
+      
+      # Goose Integration
+      - GOOSE_MCP_SERVER_URL=${GOOSE_MCP_SERVER_URL:-http://goose-mcp:8000}
+      - GOOSE_MCP_TIMEOUT=300
+      - GOOSE_MAX_CONCURRENT_QUERIES=20
+      
+      # Slack (from secrets)
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+      - SLACK_APP_TOKEN=${SLACK_APP_TOKEN}
+      - SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET}
+      - SLACK_ADMIN_CHANNEL=${SLACK_ADMIN_CHANNEL:-}
+      
+      # Security
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - RATE_LIMIT_PER_USER_PER_MINUTE=20
+      - RATE_LIMIT_GLOBAL_PER_MINUTE=200
+      
+      # Snowflake
+      - SNOWFLAKE_ACCOUNT=${SNOWFLAKE_ACCOUNT:-}
+      - SNOWFLAKE_WAREHOUSE=${SNOWFLAKE_WAREHOUSE:-COMPUTE_WH}
+      - SNOWFLAKE_DATABASE=${SNOWFLAKE_DATABASE:-ANALYTICS}
+      - SNOWFLAKE_SCHEMA=${SNOWFLAKE_SCHEMA:-PUBLIC}
+      
+      # Logging & Monitoring
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
+      - METRICS_ENABLED=true
+      - METRICS_PORT=9090
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      
+      # Feature Flags
+      - ENABLE_QUERY_HISTORY=true
+      - ENABLE_QUERY_SHARING=true
+      - ENABLE_INTERACTIVE_BUTTONS=true
+      - ENABLE_FILE_UPLOADS=true
+      - ENABLE_THREAD_MANAGEMENT=true
+      - ENABLE_USER_PERMISSIONS=true
+      
+      # Performance
+      - MAX_RESULT_ROWS=10000
+      - MAX_INLINE_ROWS=10
+      - QUERY_TIMEOUT_SECONDS=300
+      - MAX_FILE_SIZE_MB=50
+    
+    volumes:
+      - app_logs:/app/logs
+      - app_data:/app/data
+    
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    
+    networks:
+      - goose-network
+      - monitoring-network
+    
+    restart: unless-stopped
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    
+    healthcheck:
+      test: ["CMD", "python", "health_check.py", "--check", "liveness", "--exit-code"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "app=goose-slackbot,env=production"
+
+  # ================================
+  # PostgreSQL Database (Production)
+  # ================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: goose-slackbot-postgres-prod
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-goose_slackbot}
+      POSTGRES_USER: ${POSTGRES_USER:-goose_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./backups:/backups
+    networks:
+      - goose-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-goose_user} -d ${POSTGRES_DB:-goose_slackbot}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ================================
+  # Redis Cache (Production)
+  # ================================
+  redis:
+    image: redis:7-alpine
+    container_name: goose-slackbot-redis-prod
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD}
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 1gb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    volumes:
+      - redis_data:/data
+    networks:
+      - goose-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ================================
+  # Prometheus Monitoring
+  # ================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: goose-slackbot-prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9091}:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ================================
+  # Grafana Dashboards
+  # ================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: goose-slackbot-grafana
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3001
+      - GF_INSTALL_PLUGINS=redis-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ================================
+  # AlertManager for Alerts
+  # ================================
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: goose-slackbot-alertmanager
+    ports:
+      - "${ALERTMANAGER_PORT:-9093}:9093"
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    networks:
+      - monitoring-network
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ================================
+  # Nginx Reverse Proxy (Optional)
+  # ================================
+  nginx:
+    image: nginx:alpine
+    container_name: goose-slackbot-nginx
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    networks:
+      - goose-network
+      - monitoring-network
+    restart: unless-stopped
+    depends_on:
+      - app
+      - grafana
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    profiles:
+      - with-nginx
+
+  # ================================
+  # Backup Service
+  # ================================
+  backup:
+    image: postgres:15-alpine
+    container_name: goose-slackbot-backup
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-goose_slackbot}
+      POSTGRES_USER: ${POSTGRES_USER:-goose_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGHOST: postgres
+      BACKUP_SCHEDULE: ${BACKUP_SCHEDULE:-0 2 * * *}
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup.sh:/backup.sh:ro
+    networks:
+      - goose-network
+    restart: unless-stopped
+    command: >
+      sh -c "
+      apk add --no-cache dcron &&
+      echo '${BACKUP_SCHEDULE:-0 2 * * *} /backup.sh' | crontab - &&
+      crond -f -l 2
+      "
+    depends_on:
+      - postgres
+    profiles:
+      - with-backup
+
+# ================================
+# Networks
+# ================================
+networks:
+  goose-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+  
+  monitoring-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.0.0/16
+
+# ================================
+# Volumes
+# ================================
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/postgres
+  
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/redis
+  
+  app_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/logs
+  
+  app_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/app
+  
+  prometheus_data:
+    driver: local
+  
+  grafana_data:
+    driver: local
+  
+  alertmanager_data:
+    driver: local
+  
+  nginx_logs:
+    driver: local
