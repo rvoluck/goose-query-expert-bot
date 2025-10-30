@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     slack_client_secret: Optional[str] = Field(None, env="SLACK_CLIENT_SECRET")
     slack_signing_secret: str = Field(..., env="SLACK_SIGNING_SECRET")
     slack_app_id: Optional[str] = Field(None, env="SLACK_APP_ID")
+    slack_oauth_redirect_url: Optional[str] = Field(None, env="SLACK_OAUTH_REDIRECT_URL")
     slack_admin_channel: Optional[str] = Field(None, env="SLACK_ADMIN_CHANNEL")
     
     # ================================
