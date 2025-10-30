@@ -5,7 +5,8 @@ Handles environment variables and application settings
 
 import os
 from typing import Optional, List
-from pydantic import BaseSettings, Field, validator
+from pydantic import Field, validator
+from pydantic_settings import BaseSettings
 from pathlib import Path
 
 
