@@ -4,6 +4,7 @@
 # Slack SDK
 slack-sdk>=3.21.0
 slack-bolt>=1.18.0
+starlette>=0.27.0  # Required by slack-bolt FastAPI adapter
 
 # Async support
 aiohttp>=3.8.0
@@ -44,6 +45,7 @@ flake8>=6.0.0
 mypy>=1.5.0
 
 # Production server
+fastapi>=0.104.0  # Required for public distribution
 uvicorn>=0.23.0
 gunicorn>=21.0.0
 
