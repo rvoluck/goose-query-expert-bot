@@ -113,8 +113,8 @@ class UserMapping(Base):
     permissions = Column(JSON, default=list)
     is_active = Column(Boolean, default=True)
     
-    # Metadata
-    metadata = Column(JSON, default=dict)
+    # Metadata (renamed from 'metadata' to avoid SQLAlchemy conflict)
+    user_metadata = Column(JSON, default=dict)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     
@@ -469,7 +469,7 @@ class UserMappingRepository:
         row = await self.db.execute_one(
             """
             SELECT slack_user_id, internal_user_id, ldap_id, email, full_name,
-                   roles, permissions, is_active, metadata, created_at, updated_at
+                   roles, permissions, is_active, user_metadata, created_at, updated_at
             FROM user_mappings 
             WHERE slack_user_id = $1 AND is_active = true
             """,
@@ -480,7 +480,7 @@ class UserMappingRepository:
             mapping = dict(row)
             mapping["roles"] = json.loads(mapping["roles"] or "[]")
             mapping["permissions"] = json.loads(mapping["permissions"] or "[]")
-            mapping["metadata"] = json.loads(mapping["metadata"] or "{}")
+            mapping["user_metadata"] = json.loads(mapping["user_metadata"] or "{}")
             return mapping
         
         return None
@@ -578,7 +578,7 @@ async def create_database_schema(db_manager: DatabaseManager):
         roles JSONB DEFAULT '[]',
         permissions JSONB DEFAULT '[]',
         is_active BOOLEAN DEFAULT true,
-        metadata JSONB DEFAULT '{}',
+        user_metadata JSONB DEFAULT '{}',
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
     );
