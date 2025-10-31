@@ -124,16 +124,7 @@ async def get_oauth_settings():
             "channels:history",
             "channels:read",
             "chat:write",
-            "chat:write.public",
             "commands",
-            "files:write",
-            "groups:history",
-            "groups:read",
-            "im:history",
-            "im:read",
-            "im:write",
-            "mpim:history",
-            "mpim:read",
             "users:read"
         ],
         installation_store=DatabaseInstallationStore(db_manager),
@@ -258,11 +249,11 @@ async def health_check():
 @fastapi_app.get("/")
 async def root():
     """Root endpoint with installation link"""
-    install_url = f"https://slack.com/oauth/v2/authorize?client_id={settings.slack_client_id}&scope=app_mentions:read,channels:history,channels:read,chat:write,chat:write.public,commands,files:write,groups:history,groups:read,im:history,im:read,im:write,mpim:history,mpim:read,users:read"
+    install_url = f"https://slack.com/oauth/v2/authorize?client_id={settings.slack_client_id}&scope=app_mentions:read,channels:history,channels:read,chat:write,commands,users:read"
     
     return {
         "name": "Goose Query Expert Slackbot",
-        "description": "AI-powered data analysis bot for Slack",
+        "description": "AI-powered data analysis bot for Slack (channels only, no DMs)",
         "install_url": install_url,
         "documentation": f"{settings.public_url}/docs"
     }
@@ -306,15 +297,8 @@ def setup_event_handlers(app: AsyncApp):
     
     @app.event("app_mention")
     async def handle_app_mention(event, say, client):
-        """Handle app mentions"""
+        """Handle app mentions in channels"""
         await process_query_request(event, say, client)
-    
-    @app.event("message")
-    async def handle_message(event, say, client):
-        """Handle direct messages"""
-        # Only process DMs
-        if event.get("channel_type") == "im":
-            await process_query_request(event, say, client)
     
     @app.action("refine_query")
     async def handle_refine_query(ack, body, client):
