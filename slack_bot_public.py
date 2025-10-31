@@ -255,7 +255,14 @@ async def root():
         "name": "Goose Query Expert Slackbot",
         "description": "AI-powered data analysis bot for Slack (channels only, no DMs)",
         "install_url": install_url,
-        "documentation": f"{settings.public_url}/docs"
+        "scopes": [
+            "app_mentions:read",
+            "channels:history", 
+            "channels:read",
+            "chat:write",
+            "commands",
+            "users:read"
+        ]
     }
 
 
