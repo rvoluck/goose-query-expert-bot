@@ -1,0 +1,174 @@
+# SKI Configuration for Goose Query Expert Slackbot
+# See: go/ccd for Cloud CD documentation
+
+name: goose-query-expert-bot
+description: AI-powered data analysis Slackbot for collaborative queries
+
+# Service configuration
+service:
+  type: web
+  port: 3000
+  
+  # Health checks
+  health_check:
+    path: /health
+    interval: 30s
+    timeout: 10s
+    healthy_threshold: 2
+    unhealthy_threshold: 3
+  
+  readiness_check:
+    path: /health
+    interval: 10s
+    timeout: 5s
+
+# Container configuration
+container:
+  # Build from Dockerfile
+  dockerfile: Dockerfile.optimized
+  
+  # Resource limits
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+
+# Scaling configuration
+scaling:
+  min_replicas: 2
+  max_replicas: 10
+  target_cpu_utilization: 70
+
+# Environment variables (non-sensitive)
+env:
+  ENVIRONMENT: production
+  HOST: 0.0.0.0
+  PORT: "3000"
+  LOG_LEVEL: INFO
+  LOG_FORMAT: json
+  
+  # Feature flags
+  ENABLE_QUERY_HISTORY: "true"
+  ENABLE_QUERY_SHARING: "true"
+  
+  # Performance
+  MAX_RESULT_ROWS: "10000"
+  QUERY_TIMEOUT_SECONDS: "300"
+
+# Secrets (stored in Square's secret management)
+secrets:
+  # Slack credentials
+  - name: SLACK_BOT_TOKEN
+    source: secret-manager
+  - name: SLACK_CLIENT_ID
+    source: secret-manager
+  - name: SLACK_CLIENT_SECRET
+    source: secret-manager
+  - name: SLACK_SIGNING_SECRET
+    source: secret-manager
+  - name: SLACK_APP_ID
+    source: secret-manager
+  - name: SLACK_OAUTH_REDIRECT_URL
+    source: secret-manager
+  
+  # Security keys
+  - name: JWT_SECRET_KEY
+    source: secret-manager
+  - name: ENCRYPTION_KEY
+    source: secret-manager
+  
+  # Database
+  - name: DATABASE_URL
+    source: secret-manager
+  
+  # Redis
+  - name: REDIS_URL
+    source: secret-manager
+  
+  # Snowflake (if needed)
+  - name: SNOWFLAKE_ACCOUNT
+    source: secret-manager
+  - name: SNOWFLAKE_USER
+    source: secret-manager
+  - name: SNOWFLAKE_PASSWORD
+    source: secret-manager
+
+# Dependencies - PostgreSQL and Redis
+dependencies:
+  postgres:
+    version: "15"
+    database: goose_slackbot
+    storage: 20Gi
+  
+  redis:
+    version: "7"
+    storage: 5Gi
+
+# Ingress configuration for external access
+ingress:
+  enabled: true
+  paths:
+    - path: /
+      service: goose-query-expert-bot
+      port: 3000
+  
+  # TLS/SSL
+  tls:
+    enabled: true
+    auto_cert: true
+
+# Monitoring and alerts
+monitoring:
+  enabled: true
+  metrics_port: 9090
+  
+  alerts:
+    - name: high_error_rate
+      condition: error_rate > 5%
+      duration: 5m
+    
+    - name: high_latency
+      condition: p99_latency > 5s
+      duration: 5m
+    
+    - name: pod_restarts
+      condition: restart_count > 3
+      duration: 10m
+
+# Deployment strategy
+deployment:
+  strategy: rolling
+  max_unavailable: 1
+  max_surge: 2
+  
+  # Canary deployment (optional)
+  canary:
+    enabled: false
+    steps:
+      - weight: 10
+        pause: 5m
+      - weight: 50
+        pause: 10m
+      - weight: 100
+
+# Auto-deploy configuration
+auto_deploy:
+  enabled: true
+  environments:
+    - staging
+    - production
+  
+  # Validation before promotion
+  validation:
+    health_check: true
+    smoke_tests: true
+    rollback_on_failure: true
+
+# Rollback configuration
+rollback:
+  auto_rollback: true
+  health_check_failures: 3
+  error_rate_threshold: 10%
