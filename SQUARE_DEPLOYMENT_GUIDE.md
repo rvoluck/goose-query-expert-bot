@@ -30,17 +30,17 @@ See: [go/ccd](https://go/ccd) for Cloud CD documentation
 ```bash
 cd /Users/rleach/goose-slackbot
 
-# Add Square GitHub remote (if not already added)
-git remote add square git@git.sqprod.co:your-team/goose-query-expert-bot.git
+# Square GitHub remote is already configured!
+# Repository: https://github.com/rvoluck/goose-query-expert-bot-block
 
 # Push to Square GitHub
 git push square main
 ```
 
-**Don't have a Square GitHub repo yet?**
-1. Go to [git.sqprod.co](https://git.sqprod.co)
-2. Create new repository: `goose-query-expert-bot`
-3. Add your team as collaborators
+**Your Square GitHub repo:**
+- URL: https://github.com/rvoluck/goose-query-expert-bot-block
+- Remote name: `square`
+- Branch: `main`
 
 ---
 
