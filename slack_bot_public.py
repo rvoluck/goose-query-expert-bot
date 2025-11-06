@@ -69,30 +69,39 @@ class DatabaseInstallationStore:
     ) -> Optional[Installation]:
         """Find installation by team_id"""
         
-        row = await self.db.execute_one(
-            """
-            SELECT team_id, team_name, bot_token, bot_user_id, bot_scopes
-            FROM slack_installations
-            WHERE team_id = $1
-            """,
-            team_id
-        )
+        logger.info("Looking for installation", team_id=team_id, enterprise_id=enterprise_id)
         
-        if not row:
+        try:
+            row = await self.db.execute_one(
+                """
+                SELECT team_id, team_name, bot_token, bot_user_id, bot_scopes
+                FROM slack_installations
+                WHERE team_id = $1
+                """,
+                team_id
+            )
+            
+            if not row:
+                logger.warning("Installation not found in database", team_id=team_id)
+                return None
+            
+            logger.info("Installation found", team_id=team_id, bot_user_id=row.get('bot_user_id'))
+            
+            return Installation(
+                app_id=settings.slack_app_id,
+                enterprise_id=enterprise_id,
+                team_id=row['team_id'],
+                team_name=row['team_name'],
+                bot_token=row['bot_token'],
+                bot_id=row['bot_user_id'],
+                bot_user_id=row['bot_user_id'],
+                bot_scopes=row['bot_scopes'].split(',') if row['bot_scopes'] else [],
+                user_id=user_id,
+                installed_at=time.time()
+            )
+        except Exception as e:
+            logger.error("Error finding installation", team_id=team_id, error=str(e))
             return None
-        
-        return Installation(
-            app_id=settings.slack_app_id,
-            enterprise_id=enterprise_id,
-            team_id=row['team_id'],
-            team_name=row['team_name'],
-            bot_token=row['bot_token'],
-            bot_id=row['bot_user_id'],
-            bot_user_id=row['bot_user_id'],
-            bot_scopes=row['bot_scopes'].split(',') if row['bot_scopes'] else [],
-            user_id=user_id,
-            installed_at=time.time()
-        )
     
     async def async_delete_installation(
         self,
