@@ -43,20 +43,20 @@ class DatabaseInstallationStore:
         await self.db.execute_command(
             """
             INSERT INTO slack_installations 
-            (team_id, team_name, bot_token, bot_user_id, scope, installed_at, updated_at)
+            (team_id, team_name, bot_token, bot_user_id, bot_scopes, installed_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
             ON CONFLICT (team_id) DO UPDATE SET
                 team_name = EXCLUDED.team_name,
                 bot_token = EXCLUDED.bot_token,
                 bot_user_id = EXCLUDED.bot_user_id,
-                scope = EXCLUDED.scope,
+                bot_scopes = EXCLUDED.bot_scopes,
                 updated_at = NOW()
             """,
             installation.team_id,
             installation.team_name,
             installation.bot_token,
             installation.bot_user_id,
-            installation.scope
+            ','.join(installation.bot_scopes) if installation.bot_scopes else ''
         )
         logger.info("Saved installation", team_id=installation.team_id)
     
@@ -71,7 +71,7 @@ class DatabaseInstallationStore:
         
         row = await self.db.execute_one(
             """
-            SELECT team_id, team_name, bot_token, bot_user_id, scope
+            SELECT team_id, team_name, bot_token, bot_user_id, bot_scopes
             FROM slack_installations
             WHERE team_id = $1
             """,
@@ -89,7 +89,7 @@ class DatabaseInstallationStore:
             bot_token=row['bot_token'],
             bot_id=row['bot_user_id'],
             bot_user_id=row['bot_user_id'],
-            bot_scopes=row['scope'].split(',') if row['scope'] else [],
+            bot_scopes=row['bot_scopes'].split(',') if row['bot_scopes'] else [],
             user_id=user_id,
             installed_at=time.time()
         )
