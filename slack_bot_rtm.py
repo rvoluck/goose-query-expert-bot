@@ -89,15 +89,40 @@ async def handle_error(client: RTMClient, event: dict):
     """Handle errors"""
     logger.error(f"RTM Error: {event}")
 
+async def start_web_server():
+    """Start a simple web server for Heroku health checks"""
+    from aiohttp import web
+    
+    async def health_check(request):
+        return web.json_response({
+            "status": "healthy",
+            "service": "goose-query-expert-slackbot-rtm",
+            "connected": rtm_client.is_connected() if hasattr(rtm_client, 'is_connected') else True
+        })
+    
+    app = web.Application()
+    app.router.add_get('/health', health_check)
+    app.router.add_get('/', health_check)
+    
+    port = int(os.getenv("PORT", 8080))
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', port)
+    await site.start()
+    logger.info(f"Web server started on port {port}")
+
 async def main():
     """Main entry point"""
     logger.info("🚀 Starting Slack Bot with RTM API...")
     logger.info(f"Bot token: {SLACK_BOT_TOKEN[:20]}...")
     
     try:
+        # Start web server for Heroku
+        await start_web_server()
+        
         # Start RTM connection
         await rtm_client.connect()
-        logger.info("RTM client started successfully")
+        logger.info("✅ RTM client connected successfully!")
         
         # Keep running
         while True:
