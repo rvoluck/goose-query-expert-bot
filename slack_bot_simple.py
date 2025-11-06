@@ -71,7 +71,16 @@ async def startup_event():
 @fastapi_app.post("/slack/events")
 async def slack_events(request: Request):
     """Handle Slack events via webhook"""
-    return await slack_handler.handle(request)
+    body = await request.body()
+    logger.info(f"Received Slack event: {body.decode()[:500]}")  # Log first 500 chars
+    
+    try:
+        result = await slack_handler.handle(request)
+        logger.info(f"Handler result: {result}")
+        return result
+    except Exception as e:
+        logger.error(f"Error handling Slack event: {str(e)}", exc_info=True)
+        raise
 
 @fastapi_app.get("/health")
 async def health_check():
