@@ -1,2 +1,3 @@
-web: python bot.py
-# Ultra-simple Socket Mode bot - no database, no OAuth complexity
+web: python start.py
+# Launches either Slackbot or MCP server based on APP_TYPE env var
+# Set APP_TYPE=slackbot for bot, APP_TYPE=mcp for MCP server
