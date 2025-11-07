@@ -18,10 +18,21 @@ print(f"🚀 Starting bot...")
 print(f"Bot token: {BOT_TOKEN[:20]}...")
 print(f"App token: {APP_TOKEN[:20]}...")
 
-# Create app with ONLY the bot token - no other config
+# Create app with single-workspace authorization (no OAuth)
+# This bypasses the installation store completely
+def authorize():
+    """Simple authorization - just return the bot token"""
+    return {
+        "bot_token": BOT_TOKEN,
+        "bot_id": None,
+        "bot_user_id": None,
+        "user_id": None,
+    }
+
 app = AsyncApp(
-    token=BOT_TOKEN,
-    signing_secret=os.environ.get("SLACK_SIGNING_SECRET", "")
+    authorize=authorize,
+    signing_secret=os.environ.get("SLACK_SIGNING_SECRET", ""),
+    process_before_response=True
 )
 
 @app.event("app_mention")
