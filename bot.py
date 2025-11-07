@@ -37,17 +37,53 @@ app = AsyncApp(
 
 @app.event("app_mention")
 async def mention_handler(event, say):
-    """Handle @mentions"""
+    """Handle @mentions - Query Expert style"""
     print(f"📨 Got app_mention event: {event}")
     
     user = event["user"]
     text = re.sub(r'<@[A-Z0-9]+>', '', event.get("text", "")).strip()
     
+    # Send initial "thinking" message
     await say(
-        text=f"👋 Hi <@{user}>! You said: '{text}'\n\n✅ **IT WORKS!**",
+        text=f"🔍 Analyzing your question: _{text}_\n\nSearching for relevant tables and similar queries...",
         thread_ts=event.get("ts")
     )
-    print("✅ Sent response!")
+    
+    # Simulate Query Expert response
+    await say(
+        text=f"📊 *Query Analysis Results*\n\n"
+             f"*Your Question:* {text}\n\n"
+             f"*Relevant Tables Found:*\n"
+             f"• `analytics.revenue_daily` - Daily revenue aggregations\n"
+             f"• `analytics.customers` - Customer dimension table\n"
+             f"• `analytics.transactions` - Transaction fact table\n\n"
+             f"*Similar Past Queries:*\n"
+             f"• \"Show me revenue trends\" (executed 3 days ago)\n"
+             f"• \"What was last month's revenue\" (executed 1 week ago)\n\n"
+             f"*Generated SQL:*\n"
+             f"```sql\n"
+             f"SELECT \n"
+             f"    DATE_TRUNC('month', transaction_date) AS month,\n"
+             f"    SUM(amount) AS total_revenue,\n"
+             f"    COUNT(DISTINCT customer_id) AS unique_customers\n"
+             f"FROM analytics.transactions\n"
+             f"WHERE transaction_date >= DATEADD(month, -6, CURRENT_DATE)\n"
+             f"GROUP BY 1\n"
+             f"ORDER BY 1 DESC;\n"
+             f"```\n\n"
+             f"*Results Summary:*\n"
+             f"• Found 6 rows\n"
+             f"• Execution time: 1.2s\n"
+             f"• Total revenue (last 6 months): $2,450,000\n"
+             f"• Average monthly revenue: $408,333\n\n"
+             f"💡 *Insights:*\n"
+             f"• Revenue trending up 15% month-over-month\n"
+             f"• Customer base growing steadily\n"
+             f"• Peak revenue in most recent month\n\n"
+             f"_Would you like me to refine this query or analyze a different aspect?_",
+        thread_ts=event.get("ts")
+    )
+    print("✅ Sent Query Expert-style response!")
 
 @app.event("message")
 async def message_handler(event, say):
