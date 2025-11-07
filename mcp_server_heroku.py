@@ -84,60 +84,168 @@ class MCPHandler(BaseHTTPRequestHandler):
         raise Exception("Direct Snowflake mode not yet implemented. Set MOCK_MODE=true")
     
     def mock_query_expert(self, tool_name, arguments):
-        """Return realistic mock data"""
+        """Return realistic mock data that responds to the actual question"""
         
         if tool_name == "queryexpert__find_table_meta_data":
-            search_text = arguments.get("search_text", "")
-            return {
-                "tables": [
+            search_text = arguments.get("search_text", "").lower()
+            
+            # Generate contextual table suggestions based on keywords
+            tables = []
+            
+            if any(word in search_text for word in ["revenue", "sales", "money", "income", "profit"]):
+                tables.extend([
                     {
                         "table_name": "ANALYTICS.SALES.REVENUE_DAILY",
-                        "description": f"Daily revenue data (searched: {search_text})",
-                        "columns": ["date", "revenue", "transactions", "customers"],
+                        "description": f"Daily revenue metrics - relevant to: '{search_text}'",
+                        "columns": ["date", "revenue", "transactions", "product_category"],
                         "verification_status": "VERIFIED",
                         "total_users_recent": 15
                     },
                     {
-                        "table_name": "ANALYTICS.SALES.CUSTOMER_METRICS",
-                        "description": "Customer acquisition and retention metrics",
-                        "columns": ["customer_id", "signup_date", "ltv", "churn_risk"],
+                        "table_name": "FINANCE.REVENUE.MONTHLY_SUMMARY",
+                        "description": "Monthly revenue rollups by region",
+                        "columns": ["month", "region", "total_revenue", "growth_rate"],
                         "verification_status": "VERIFIED",
-                        "total_users_recent": 8
+                        "total_users_recent": 22
+                    }
+                ])
+            
+            if any(word in search_text for word in ["customer", "user", "client", "account"]):
+                tables.extend([
+                    {
+                        "table_name": "ANALYTICS.CUSTOMERS.CUSTOMER_METRICS",
+                        "description": f"Customer data matching: '{search_text}'",
+                        "columns": ["customer_id", "signup_date", "ltv", "segment"],
+                        "verification_status": "VERIFIED",
+                        "total_users_recent": 18
+                    },
+                    {
+                        "table_name": "ANALYTICS.CUSTOMERS.CHURN_PREDICTIONS",
+                        "description": "Customer churn risk scores",
+                        "columns": ["customer_id", "churn_probability", "last_activity"],
+                        "verification_status": "VERIFIED",
+                        "total_users_recent": 12
+                    }
+                ])
+            
+            if any(word in search_text for word in ["product", "item", "inventory", "catalog"]):
+                tables.extend([
+                    {
+                        "table_name": "ANALYTICS.PRODUCTS.CATALOG",
+                        "description": f"Product catalog - searched: '{search_text}'",
+                        "columns": ["product_id", "name", "category", "price", "stock"],
+                        "verification_status": "VERIFIED",
+                        "total_users_recent": 9
+                    }
+                ])
+            
+            if any(word in search_text for word in ["transaction", "order", "purchase", "payment"]):
+                tables.extend([
+                    {
+                        "table_name": "ANALYTICS.TRANSACTIONS.ORDER_DETAILS",
+                        "description": f"Transaction records for: '{search_text}'",
+                        "columns": ["order_id", "customer_id", "amount", "timestamp"],
+                        "verification_status": "VERIFIED",
+                        "total_users_recent": 25
+                    }
+                ])
+            
+            # Default fallback
+            if not tables:
+                tables = [
+                    {
+                        "table_name": "ANALYTICS.GENERAL.DATA_DICTIONARY",
+                        "description": f"General data catalog - try refining search: '{search_text}'",
+                        "columns": ["table_name", "description", "owner"],
+                        "verification_status": "VERIFIED",
+                        "total_users_recent": 5
                     }
                 ]
-            }
+            
+            return {"tables": tables[:5]}  # Return top 5
         
         elif tool_name == "queryexpert__query_expert_search":
             search_text = arguments.get("search_text", "")
-            return {
-                "queries": [
-                    {
-                        "query_text": f"SELECT * FROM revenue WHERE description LIKE '%{search_text}%'",
-                        "user_name": "john.doe",
-                        "query_description": f"Revenue analysis for {search_text}",
-                        "similarity_score": 0.92
-                    },
-                    {
-                        "query_text": "SELECT date, SUM(revenue) FROM revenue_daily GROUP BY date",
-                        "user_name": "jane.smith",
-                        "query_description": "Daily revenue aggregation",
-                        "similarity_score": 0.85
-                    }
-                ]
-            }
+            
+            # Generate contextual similar queries
+            queries = []
+            
+            if "revenue" in search_text.lower():
+                queries.append({
+                    "query_text": f"SELECT date, SUM(revenue) as total FROM revenue_daily WHERE date >= '2024-01-01' GROUP BY date",
+                    "user_name": "john.doe",
+                    "query_description": f"Similar to your question about: {search_text}",
+                    "similarity_score": 0.92
+                })
+            
+            if "customer" in search_text.lower():
+                queries.append({
+                    "query_text": "SELECT customer_id, COUNT(*) as orders FROM transactions GROUP BY customer_id",
+                    "user_name": "jane.smith",
+                    "query_description": f"Customer analysis related to: {search_text}",
+                    "similarity_score": 0.88
+                })
+            
+            # Always add a generic similar query
+            queries.append({
+                "query_text": f"-- Query related to: {search_text}\nSELECT * FROM relevant_table LIMIT 100",
+                "user_name": "data.team",
+                "query_description": f"General query for: {search_text}",
+                "similarity_score": 0.75
+            })
+            
+            return {"queries": queries}
         
         elif tool_name == "queryexpert__execute_query":
             query = arguments.get("query", "")
-            return {
-                "columns": ["metric", "value", "change_pct"],
-                "rows": [
-                    ["Total Revenue", 1250000.50, 15.2],
-                    ["Total Customers", 8450, 8.7],
-                    ["Avg Order Value", 148.05, 6.1]
-                ],
-                "row_count": 3,
-                "execution_time": 1.23
-            }
+            search_text = query.lower()
+            
+            # Generate contextual results based on the query
+            if "revenue" in search_text:
+                return {
+                    "columns": ["period", "total_revenue", "transactions", "avg_order_value"],
+                    "rows": [
+                        ["2024-Q1", 1250000.50, 15420, 81.05],
+                        ["2024-Q2", 1450000.75, 17890, 81.08],
+                        ["2024-Q3", 1680000.25, 19234, 87.35]
+                    ],
+                    "row_count": 3,
+                    "execution_time": 1.45
+                }
+            elif "customer" in search_text:
+                return {
+                    "columns": ["customer_segment", "count", "avg_ltv", "churn_rate"],
+                    "rows": [
+                        ["Premium", 1250, 5420.50, 0.05],
+                        ["Standard", 8450, 1240.25, 0.12],
+                        ["Basic", 15600, 450.75, 0.25]
+                    ],
+                    "row_count": 3,
+                    "execution_time": 0.89
+                }
+            elif "product" in search_text:
+                return {
+                    "columns": ["product_category", "units_sold", "revenue", "margin_pct"],
+                    "rows": [
+                        ["Electronics", 5420, 850000.00, 0.35],
+                        ["Clothing", 12450, 420000.00, 0.52],
+                        ["Home Goods", 3890, 290000.00, 0.41]
+                    ],
+                    "row_count": 3,
+                    "execution_time": 1.12
+                }
+            else:
+                # Generic response
+                return {
+                    "columns": ["metric", "value", "change_pct"],
+                    "rows": [
+                        ["Total Records", 125000, 8.5],
+                        ["Active Items", 8450, 12.3],
+                        ["Avg Value", 148.05, 6.1]
+                    ],
+                    "row_count": 3,
+                    "execution_time": 0.95
+                }
         
         else:
             raise Exception(f"Unknown tool: {tool_name}")
