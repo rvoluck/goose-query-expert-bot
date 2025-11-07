@@ -38,7 +38,7 @@ app = AsyncApp(
 @app.event("app_mention")
 async def mention_handler(event, say):
     """Handle @mentions"""
-    print(f"📨 Got mention: {event}")
+    print(f"📨 Got app_mention event: {event}")
     
     user = event["user"]
     text = re.sub(r'<@[A-Z0-9]+>', '', event.get("text", "")).strip()
@@ -48,6 +48,20 @@ async def mention_handler(event, say):
         thread_ts=event.get("ts")
     )
     print("✅ Sent response!")
+
+@app.event("message")
+async def message_handler(event, say):
+    """Handle ALL messages to test if Socket Mode is working"""
+    print(f"📝 Got message event: {event}")
+    
+    # Don't respond to bot messages
+    if event.get("bot_id"):
+        return
+    
+    # Only respond in channels where bot is mentioned
+    if "bot" in event.get("text", "").lower():
+        await say(f"🤖 I see you mentioned 'bot'! Socket Mode is working!")
+        print("✅ Sent test response!")
 
 async def health_server():
     """Health check server"""
