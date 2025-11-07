@@ -20,13 +20,13 @@ print(f"App token: {APP_TOKEN[:20]}...")
 
 # Create app with single-workspace authorization (no OAuth)
 # This bypasses the installation store completely
-async def authorize():
+async def authorize(enterprise_id, team_id, user_id):
     """Simple authorization - just return the bot token"""
     from slack_bolt.authorization import AuthorizeResult
     return AuthorizeResult(
+        enterprise_id=enterprise_id,
+        team_id=team_id,
         bot_token=BOT_TOKEN,
-        bot_id=None,
-        bot_user_id=None,
     )
 
 app = AsyncApp(
